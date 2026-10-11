@@ -1,0 +1,120 @@
+---
+title: "Memoire Descript"
+author: "Christian"
+date: "2026-10-11"
+output: html_document
+---
+
+
+## Importation des jeux de données
+
+```{r}
+# Statistiques descriptives pour shill
+shill <- read.csv("C:/Users/TOSSE D.C.Christian/Desktop/MemoireMaster/Empirique/donnees/shill+bidding+dataset/Shill Bidding Dataset.csv", header = TRUE, sep = ",")
+```
+
+#Statistique Descriptive des données
+
+## Vérification des NA global et sur chaque variable
+```{r}
+# Valeurs manquantes
+sum(is.na(shill))
+colSums(is.na(shill))
+```
+## Détection et Gestion des valeurs abérantes
+```{r}
+# Boxplots pour shill
+# Identifier les colonnes numériques
+colonnes_num <- sapply(shill, is.numeric)
+shill_num <- shill[, colonnes_num]
+
+# Boxplots sur les variables numériques uniquement
+par(mfrow = c(2, 6))
+for (j in 1:ncol(shill_num)) {
+  boxplot(shill_num[, j], main = colnames(shill_num)[j], col = "lightblue")
+}
+par(mfrow = c(1, 1))
+
+
+# Détecter les valeurs aberrantes par la règle de Tukey
+detecter_outliers <- function(x) {
+  q1 <- quantile(x, 0.25)
+  q3 <- quantile(x, 0.75)
+  iqr <- q3 - q1
+  sum(x < q1 - 1.5 * iqr | x > q3 + 1.5 * iqr)
+}
+
+# Appliquer à chaque variable
+sapply(shill_num[, -ncol(shill_num)], detecter_outliers)
+
+# Écreter au 1er et 99e centile s'ils existe
+ecrêter <- function(x) {
+  q01 <- quantile(x, 0.01)
+  q99 <- quantile(x, 0.99)
+  sum(x < q01 | x > q99)
+}
+```
+
+
+## Structure du jeu Shill
+```{r}
+str(shill)
+```
+## Description et statistiques des variables de Shill
+```{r}
+summary(shill)
+```
+
+## Répartition globale des classes dans shill
+```{r}
+table(shill$Class)
+prop.table(table(shill$Class))
+```
+
+## Répartition des classes dans les échantillons train et test
+```{r}
+# Separation des donnees
+set.seed(123)
+indices <- sample(1:nrow(shill), size = 0.2 * nrow(shill))
+shill_test <- shill[indices, ]
+shill_train <- shill[-indices, ]
+
+# tableau des effectifs
+table(shill_train$Class)
+table(shill_test$Class)
+
+# tableau des proportions
+prop.table(table(shill_train$Class))
+prop.table(table(shill_test$Class))
+```
+
+
+
+# Matrice de corrélation des variables
+
+## Calcul de la matrice de corrélation
+```{r}
+# On exclut la variable cible Class et les identifiants
+variables_numeriques <- shill[, !colnames(shill) %in% c("Record_ID", "Auction_ID", "Bidder_ID", "Class")]
+matrice_cor <- cor(variables_numeriques)
+
+# Afficher la matrice complète
+round(matrice_cor, 3)
+```
+
+## Visualisation de la matrice avec corplot
+```{r}
+#install.packages("corrplot")
+library(corrplot)
+
+corrplot(matrice_cor, method = "circle", type = "upper", tl.col = "black")
+```
+
+## Visualisation de la matrice avec ggcorplot
+
+```{r}
+#install.packages("ggcorrplot")
+library(ggcorrplot)
+
+ggcorrplot(matrice_cor, lab = TRUE, type = "upper")
+```

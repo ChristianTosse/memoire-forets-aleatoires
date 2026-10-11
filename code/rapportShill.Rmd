@@ -1,0 +1,139 @@
+---
+title: "Illustration expérimentale — jeu de données shill"
+author: "Christian TOSSE"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.width = 7, fig.height = 5)
+library(ggplot2)
+library(tidyr)
+```
+
+## Chargement du résultat déjà calculé
+
+```{r charger-resultats}
+# On recharge le résultat sauvegardé par main_shill.R
+resultats_Shill <- readRDS("C:/Users/TOSSE D.C.Christian/Desktop/MemoireMaster/Empirique/resultats_shill.rds")
+
+head(resultats_Shill)
+```
+
+## Agrégation : moyenne d'erreur par taille d'échantillon
+
+```{r agregation}
+moyennes_par_n <- aggregate(
+  cbind(PRF, PRFsM, SRF, RF_reelle) ~ n,
+  data = resultats_Shill,
+  FUN  = mean
+)
+
+moyennes_par_n
+```
+
+
+```{r}
+ecart_type_par_n <- aggregate(
+  cbind(PRF, PRFsM, SRF, RF_reelle) ~ n,
+  data = resultats_Shill,
+  FUN  = sd
+)
+
+ecart_type_par_n
+```
+
+
+## Intervalle de confiance IC pour chaque methode
+### Pour la méthode PRF uniquement
+```{r}
+
+for (n_val in sort(unique(resultats_Shill$n))) {
+  erreurs <- resultats_Shill$PRF[resultats_Shill$n == n_val]
+  cat("n =", n_val, "\n")
+  print(t.test(erreurs)$conf.int)
+  cat("\n")
+}
+```
+
+### Pour la méthode PRFsM uniquement
+```{r}
+for (n_val in sort(unique(resultats_Shill$n))) {
+  erreurs <- resultats_Shill$PRFsM[resultats_Shill$n == n_val]
+  cat("n =", n_val, "\n")
+  print(t.test(erreurs)$conf.int)
+  cat("\n")
+}
+```
+
+### Pour la méthode SRF uniquement
+```{r}
+for (n_val in sort(unique(resultats_Shill$n))) {
+  erreurs <- resultats_Shill$SRF[resultats_Shill$n == n_val]
+  cat("n =", n_val, "\n")
+  print(t.test(erreurs)$conf.int)
+  cat("\n")
+}
+```
+
+
+## Visualisation de la convergence
+```{r}
+ic_par_n <- data.frame()
+
+methodes <- c("PRF", "PRFsM", "SRF", "RF_reelle")
+tailles_n <- sort(unique(resultats_Shill$n))
+
+for (n_val in tailles_n) {
+  for (m in methodes) {
+    erreurs <- resultats_Shill[[m]][resultats_Shill$n == n_val]
+    tt <- t.test(erreurs, conf.level = 0.95)
+    ic_par_n <- rbind(ic_par_n, data.frame(
+      n = n_val,
+      methode = m,
+      moyenne = mean(erreurs),
+      ic_inf = as.numeric(tt$conf.int[1]),
+      ic_sup = as.numeric(tt$conf.int[2])
+    ))
+  }
+}
+
+library(ggplot2)
+
+ggplot(ic_par_n, aes(x = n, y = moyenne, color = methode)) +
+  geom_line(size = 1) +
+  geom_point(size = 3) +
+  geom_errorbar(aes(ymin = ic_inf, ymax = ic_sup), width = 0.05) +
+  geom_hline(yintercept = 0.449, linetype = "dashed", color = "black") +
+  annotate("text", x = 100, y = 0.46, label = "Classifieur trivial (10,7 %)", hjust = 0) +
+  scale_x_log10() +
+  scale_y_log10() +
+  labs(
+    title = "Vitesse de convergence empirique - données Shill",
+    x = "Taille n de l'échantillon d'apprentissage",
+    y = "Erreur de test moyenne",
+    color = "Méthode"
+  ) +
+  theme_minimal()
+```
+
+
+## Vérification de l'ordre théorique
+
+```{r verification-ordre}
+# Sur combien de valeurs de n l'ordre théorique complet est-il respecté ?
+# (PRF le plus mauvais, RF_reelle le meilleur, à chaque n)
+ordre_respecte <- apply(moyennes_par_n[, c("PRF","PRFsM","SRF","RF_reelle")], 1,
+                          function(row) all(diff(as.numeric(row)) <= 0))
+
+data.frame(n = moyennes_par_n$n, ordre_respecte = ordre_respecte)
+```
+
+
+## AUC et exactitude équilibrée
+```{r auc-balanced}
+resultats_auc_shill <- readRDS("C:/Users/TOSSE D.C.Christian/Desktop/MemoireMaster/Empirique/resultats_auc_shill.rds")
+
+print(resultats_auc_shill)
+```
+
+
