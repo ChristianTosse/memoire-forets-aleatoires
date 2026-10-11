@@ -3,6 +3,7 @@
 
 **Auteur :** Christian D. C. TOSSE  
 **Encadreur :** Dr Freedath Djibril MOUSSA  
+**Co-Superviseurs :** Drs Amour GBAGUIDI AMOUSSOU & Raymond AFFOSSOGBE  
 **Institution :** Institut de Mathématiques et de Sciences Physiques (IMSP), Université d'Abomey-Calavi  
 **Année :** 2025-2026  
 
